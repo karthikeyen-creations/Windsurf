@@ -3,6 +3,7 @@ import logging
 from controllers.query_controller import QueryController
 from daos.sqlite_dao import SQLiteDAO
 import csv
+import pandas as pd
 
 
 logging.basicConfig(level=logging.INFO)
@@ -99,7 +100,28 @@ def main():
             detailed_data = sqlite_dao.fetch_query_details(query_id, db2_table)
             logging.info(f"detailed_data: {detailed_data}")
             if detailed_data:
-                st.table(detailed_data)
+                # Display detailed data with column names
+                column_names = ["PGcsv", "DB2csv", "Column Name", "DB2 Value", "Postgres Value", "Match"]
+                styled_df = pd.DataFrame(detailed_data, columns=column_names).style
+
+                # Apply conditional formatting to highlight 'No Match' and None rows with dark theme colors
+                def highlight_rows(row):
+                    color = ''
+                    if row['Match'] == 'No Match':
+                        color = 'background-color: #5a2a2a'  # dark red
+                    elif pd.isnull(row['Match']):
+                        color = 'background-color: #2a2a5a'  # dark blue
+                    return [color] * len(row)
+
+                styled_df = styled_df.apply(highlight_rows, axis=1)
+
+                styled_df = styled_df.set_table_styles(
+                    [{'selector': 'thead th', 'props': [('background-color', '#333'), ('color', 'white'), ('font-size', '12px'), ('padding', '4px')]},
+                     {'selector': 'tbody tr:nth-child(even)', 'props': [('background-color', '#444'), ('color', 'white'), ('font-size', '12px'), ('padding', '4px')]},
+                     {'selector': 'tbody tr:nth-child(odd)', 'props': [('background-color', '#555'), ('color', 'white'), ('font-size', '12px'), ('padding', '4px')]},
+                     {'selector': 'tbody tr:hover', 'props': [('background-color', '#666')]}]
+                )
+                st.write(styled_df.to_html(), unsafe_allow_html=True)
             else:
                 st.write("No data found for the selected query.")
     else:
