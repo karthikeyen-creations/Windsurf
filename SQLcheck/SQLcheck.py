@@ -4,6 +4,7 @@ from controllers.query_controller import QueryController
 from daos.sqlite_dao import SQLiteDAO
 import csv
 import pandas as pd
+import re
 
 
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +36,11 @@ def main():
             query_controller = QueryController(db2_content, postgres_content)
 
             # Extract queries
-            db2_updates, db2_inserts, postgres_updates, postgres_inserts = query_controller.extract_queries()
+            db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
+            db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
+            db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
+
+            db2_updates, db2_inserts, postgres_updates, postgres_inserts = query_controller.extract_queries(db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple)
 
             # Store queries in the database
             sqlite_dao = SQLiteDAO()
