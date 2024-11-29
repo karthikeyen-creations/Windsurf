@@ -22,9 +22,12 @@ def extract_db2_queries(file_content):
         table_name = match.group(1)
         set_clause = match.group(2)
         column_value_pairs = []
-        for pair in set_clause.split(','):
-            column, value = pair.split('=')
-            column_value_pairs.append((column.strip(), value.strip()))
+        # Use regex to split by comma that is not within parentheses
+        pairs = re.split(r',\s*(?![^()]*\))', set_clause)
+        for pair in pairs:
+            if '=' in pair:
+                column, value = pair.split('=', 1)
+                column_value_pairs.append((column.strip(), value.strip()))
         line_number = file_content[:match.start()].count('\n') + 1
         updates.append((table_name, column_value_pairs, line_number))
         print(f"Extracted DB2 UPDATE query for table {table_name} at line {line_number}")
@@ -38,7 +41,6 @@ def extract_db2_queries(file_content):
         line_number = file_content[:match.start()].count('\n') + 1
         column_value_pairs = list(zip(columns, select_values))
         inserts.append((table_name, column_value_pairs, line_number))
-        print(f"Extracted DB2 INSERT SELECT query for table {table_name} at line {line_number}")
 
     # Extract simple INSERT queries with VALUES
     for match in db2_insert_pattern_simple.finditer(file_content):
@@ -67,9 +69,12 @@ def extract_postgres_queries(file_content):
         table_name = match.group(1)
         set_clause = match.group(2)
         column_value_pairs = []
-        for pair in set_clause.split(','):
-            column, value = pair.split('=')
-            column_value_pairs.append((column.strip(), value.strip()))
+        # Use regex to split by comma that is not within parentheses
+        pairs = re.split(r',\s*(?![^()]*\))', set_clause)
+        for pair in pairs:
+            if '=' in pair:
+                column, value = pair.split('=', 1)
+                column_value_pairs.append((column.strip(), value.strip()))
         line_number = file_content[:match.start()].count('\n') + 1
         updates.append((table_name, column_value_pairs, line_number))
         print(f"Extracted Postgres UPDATE query for table {table_name} at line {line_number}")
@@ -83,7 +88,6 @@ def extract_postgres_queries(file_content):
         line_number = file_content[:match.start()].count('\n') + 1
         column_value_pairs = list(zip(columns, select_values))
         inserts.append((table_name, column_value_pairs, line_number))
-        print(f"Extracted Postgres INSERT SELECT query for table {table_name} at line {line_number}")
 
     # Extract simple INSERT queries with VALUES
     for match in postgres_insert_pattern_simple.finditer(file_content):
@@ -115,7 +119,7 @@ def store_queries_in_db(conn, queries, query_type, source):
     for i, (table_name, column_value_pairs, line_number) in enumerate(queries, start=1):
         query_id = f"{query_type}_{i}"
         logger.info(f"Preparing to store {query_id}: Table {table_name}, Line {line_number}, Source {source}")
-        logger.info(f"Column-Value Pairs: {column_value_pairs}")
+        # logger.info(f"Column-Value Pairs: {column_value_pairs}")
         if isinstance(column_value_pairs, list):
             try:
                 for column, value in column_value_pairs:
@@ -149,8 +153,8 @@ def fetch_all_data_from_db(conn):
     cursor.execute('SELECT * FROM query_data')
     all_data = cursor.fetchall()
     logger.info("All data in query_data table:")
-    for row in all_data:
-        logger.info(row)
+    # for row in all_data:
+    #     logger.info(row)
 
 # Streamlit app
 def main():
