@@ -23,14 +23,14 @@ def highlight_missing(row, data, highlight_list):
        (pd.isna(row['COLTYPE']) and pd.isna(row['COLUMN_LENGTH'])):
         if row['Column Name'].strip().lower().endswith('_db') or row['Column Name'].strip().lower().endswith('_db2'):
             base_column_name = row['Column Name'].strip().rsplit('_', 1)[0]
-            print(f"Column Name: *{base_column_name}*, {row['Table Name']}")
+            # print(f"Column Name: *{base_column_name}*, {row['Table Name']}")
             # Add to highlight list
             highlight_list.append((base_column_name, row['Table Name']))
         return highlight_color
-    print(f"rem Column Name: *{row['Column Name']}*, {row['Table Name']}")    
+    # print(f"rem Column Name: *{row['Column Name']}*, {row['Table Name']}")    
     # Check if the combination is in the highlight list
     if (row['Column Name'], row['Table Name']) in highlight_list:
-        print(f"sel Column Name: *{row['Column Name']}*, {row['Table Name']}")    
+        # print(f"sel Column Name: *{row['Column Name']}*, {row['Table Name']}")    
         return secondary_highlight_color
     return [''] * len(row)
 
@@ -131,9 +131,9 @@ def main():
     else:
         filtered_data = merged_data
 
-    # Convert lengths to integers and replace zeros with empty strings
-    filtered_data['column_length'] = filtered_data['column_length'].apply(lambda x: '' if x == 0 else int(x) if pd.notna(x) else x)
-    filtered_data['COLUMN_LENGTH'] = filtered_data['COLUMN_LENGTH'].apply(lambda x: '' if x == 0 else int(x) if pd.notna(x) else x)
+    # Ensure column lengths are integers and replace NaNs with None
+    filtered_data.loc[:, 'column_length'] = filtered_data['column_length'].apply(lambda x: None if pd.isna(x) else int(x) if x != 0 else None)
+    filtered_data.loc[:, 'COLUMN_LENGTH'] = filtered_data['COLUMN_LENGTH'].apply(lambda x: None if pd.isna(x) else int(x) if x != 0 else None)
 
     # Add filter dropdowns in the sidebar
     table_filter = st.sidebar.multiselect('Filter by Table Name', options=filtered_data['Table Name'].unique(), default=filtered_data['Table Name'].unique())
@@ -161,6 +161,12 @@ def main():
         csv_data = filtered_data.to_csv(index=False)
         st.write('CSV data copied to clipboard!')
         st.code(csv_data, language='csv')
+
+    # Button to copy CSV format without headers
+    if st.button('Copy CSV without Headers'):
+        csv_data_no_headers = filtered_data.to_csv(index=False, header=False)
+        st.write('CSV data without headers copied to clipboard!')
+        st.code(csv_data_no_headers, language='csv')
 
 if __name__ == '__main__':
     main()
