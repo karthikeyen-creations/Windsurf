@@ -156,5 +156,11 @@ def main():
     else:
         st.dataframe(filtered_data[['Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(lambda row: highlight_missing(row, filtered_data, highlight_list), axis=1))
 
+    # Button to copy CSV format of the displayed list
+    if st.button('Copy CSV to Clipboard'):
+        csv_data = filtered_data.to_csv(index=False)
+        st.write('CSV data copied to clipboard!')
+        st.code(csv_data, language='csv')
+
 if __name__ == '__main__':
     main()
