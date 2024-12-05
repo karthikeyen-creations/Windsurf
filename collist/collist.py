@@ -10,19 +10,29 @@ def load_data():
     data_2 = pd.read_csv(file_path_2)
     return data_1, data_2
 
-# Function to highlight missing columns
-def highlight_missing(row):
-    style = [''] * len(row)
-    # Highlight if both datatype and length are empty
-    if pd.isna(row['column_datatype']) and pd.isna(row['column_length']):
-        style[1] = 'background-color: #4B0082; color: #FFFFFF'  # Dark violet for column name
-        style[2] = 'background-color: #1E3A5F; color: #FFFFFF'
-        style[3] = 'background-color: #1E3A5F; color: #FFFFFF'
-    if pd.isna(row['COLTYPE']) and pd.isna(row['COLUMN_LENGTH']):
-        style[1] = 'background-color: #4B0082; color: #FFFFFF'
-        style[4] = 'background-color: #1E3A5F; color: #FFFFFF'
-        style[5] = 'background-color: #1E3A5F; color: #FFFFFF'
-    return style
+# Function to highlight missing datatype and length
+# Highlight only if both column_datatype and column_length are empty
+# or both COLTYPE and COLUMN_LENGTH are empty
+# Additionally, highlight corresponding columns without '_db' or '_db2' suffix
+
+def highlight_missing(row, data, highlight_list):
+    highlight_color = ['background-color: #1E3A5F'] * len(row)
+    secondary_highlight_color = ['background-color: #4B0082'] * len(row)
+    # Initial highlighting condition
+    if (pd.isna(row['column_datatype']) and pd.isna(row['column_length'])) or \
+       (pd.isna(row['COLTYPE']) and pd.isna(row['COLUMN_LENGTH'])):
+        if row['Column Name'].strip().lower().endswith('_db') or row['Column Name'].strip().lower().endswith('_db2'):
+            base_column_name = row['Column Name'].strip().rsplit('_', 1)[0]
+            print(f"Column Name: *{base_column_name}*, {row['Table Name']}")
+            # Add to highlight list
+            highlight_list.append((base_column_name, row['Table Name']))
+        return highlight_color
+    print(f"rem Column Name: *{row['Column Name']}*, {row['Table Name']}")    
+    # Check if the combination is in the highlight list
+    if (row['Column Name'], row['Table Name']) in highlight_list:
+        print(f"sel Column Name: *{row['Column Name']}*, {row['Table Name']}")    
+        return secondary_highlight_color
+    return [''] * len(row)
 
 # Function to extract table names from SQL content
 def extract_tables_from_sql(sql_content):
@@ -30,6 +40,19 @@ def extract_tables_from_sql(sql_content):
     table_pattern = r'tgabm00\.(?:t\w+?_)?(\w+)'
     tables = list(set(re.findall(table_pattern, sql_content, re.IGNORECASE)))
     return tables
+
+# Function to prepare the highlight list
+# This function will populate the highlight_list based on the conditions
+
+def prepare_highlight_list(data):
+    highlight_list = []
+    for _, row in data.iterrows():
+        if (pd.isna(row['column_datatype']) and pd.isna(row['column_length'])) or \
+           (pd.isna(row['COLTYPE']) and pd.isna(row['COLUMN_LENGTH'])):
+            if row['Column Name'].strip().lower().endswith('_db') or row['Column Name'].strip().lower().endswith('_db2'):
+                base_column_name = row['Column Name'].strip().rsplit('_', 1)[0]
+                highlight_list.append((base_column_name, row['Table Name']))
+    return highlight_list
 
 # Main function to run the Streamlit app
 def main():
@@ -80,8 +103,26 @@ def main():
     # Add a checkbox for displaying only highlighted rows
     show_highlighted = st.sidebar.checkbox('Show only highlighted rows')
 
-    # Filter the data based on the checkbox
-    if show_highlighted:
+    # Add a checkbox for displaying only secondary highlighted rows
+    show_secondary_highlighted = st.sidebar.checkbox('Show only secondary highlighted rows')
+
+    # Prepare the highlight list
+    highlight_list = prepare_highlight_list(merged_data)
+
+    # Filter the data based on the checkboxes
+    if show_secondary_highlighted and show_highlighted:
+        # Combine both highlighted and secondary highlighted
+        highlighted_mask = (
+            (merged_data['column_datatype'].isna() & merged_data['column_length'].isna()) |
+            (merged_data['COLTYPE'].isna() & merged_data['COLUMN_LENGTH'].isna())
+        )
+        secondary_highlighted_mask = merged_data.apply(lambda row: (row['Column Name'], row['Table Name']) in highlight_list, axis=1)
+        combined_mask = highlighted_mask | secondary_highlighted_mask
+        filtered_data = merged_data[combined_mask]
+    elif show_secondary_highlighted:
+        secondary_highlighted_mask = merged_data.apply(lambda row: (row['Column Name'], row['Table Name']) in highlight_list, axis=1)
+        filtered_data = merged_data[secondary_highlighted_mask]
+    elif show_highlighted:
         highlighted_mask = (
             (merged_data['column_datatype'].isna() & merged_data['column_length'].isna()) |
             (merged_data['COLTYPE'].isna() & merged_data['COLUMN_LENGTH'].isna())
@@ -89,6 +130,10 @@ def main():
         filtered_data = merged_data[highlighted_mask]
     else:
         filtered_data = merged_data
+
+    # Convert lengths to integers and replace zeros with empty strings
+    filtered_data['column_length'] = filtered_data['column_length'].apply(lambda x: '' if x == 0 else int(x) if pd.notna(x) else x)
+    filtered_data['COLUMN_LENGTH'] = filtered_data['COLUMN_LENGTH'].apply(lambda x: '' if x == 0 else int(x) if pd.notna(x) else x)
 
     # Add filter dropdowns in the sidebar
     table_filter = st.sidebar.multiselect('Filter by Table Name', options=filtered_data['Table Name'].unique(), default=filtered_data['Table Name'].unique())
@@ -107,9 +152,9 @@ def main():
     # Display the filtered data as a table
     st.write('Filtered Tables and Columns:')
     if 'File Name' in filtered_data.columns:
-        st.dataframe(filtered_data[['File Name', 'Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(highlight_missing, axis=1))
+        st.dataframe(filtered_data[['File Name', 'Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(lambda row: highlight_missing(row, filtered_data, highlight_list), axis=1))
     else:
-        st.dataframe(filtered_data[['Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(highlight_missing, axis=1))
+        st.dataframe(filtered_data[['Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(lambda row: highlight_missing(row, filtered_data, highlight_list), axis=1))
 
 if __name__ == '__main__':
     main()
