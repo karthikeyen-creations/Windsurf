@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 
 # Load the CSV files
 def load_data():
@@ -23,10 +24,20 @@ def highlight_missing(row):
         style[5] = 'background-color: #1E3A5F; color: #FFFFFF'
     return style
 
+# Function to extract table names from SQL content
+def extract_tables_from_sql(sql_content):
+    # Regex to find tables in tgabm00 schema
+    table_pattern = r'tgabm00\.(\w+)'
+    tables = list(set(re.findall(table_pattern, sql_content, re.IGNORECASE)))
+    return tables
+
 # Main function to run the Streamlit app
 def main():
     st.set_page_config(layout="wide", page_title="Postgres SQL Tables and Columns", page_icon="📊")  # Set app layout to wide
     st.title('Postgres SQL Tables and Columns')
+    
+    # File uploader for PostgreSQL function
+    uploaded_file = st.sidebar.file_uploader("Upload a PostgreSQL function file", type=["sql"])
     
     # Load data
     data_1, data_2 = load_data()
@@ -47,6 +58,14 @@ def main():
     # Coalesce-like approach for table and column names
     merged_data['Table Name'] = merged_data['t_name'].combine_first(merged_data['TNAME'])
     merged_data['Column Name'] = merged_data['column_name'].combine_first(merged_data['NAME'])
+
+    # If a file is uploaded, filter tables based on the file
+    if uploaded_file is not None:
+        sql_content = uploaded_file.read().decode('utf-8')
+        tables_in_sql = extract_tables_from_sql(sql_content)
+        merged_data = merged_data[merged_data['t_name'].isin(tables_in_sql)]
+        # Add a column with the file name as the first column
+        merged_data.insert(0, 'File Name', uploaded_file.name)
 
     # Add a checkbox for displaying only highlighted rows
     show_highlighted = st.sidebar.checkbox('Show only highlighted rows')
@@ -77,7 +96,10 @@ def main():
 
     # Display the filtered data as a table
     st.write('Filtered Tables and Columns:')
-    st.dataframe(filtered_data[['Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(highlight_missing, axis=1))
+    if 'File Name' in filtered_data.columns:
+        st.dataframe(filtered_data[['File Name', 'Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(highlight_missing, axis=1))
+    else:
+        st.dataframe(filtered_data[['Table Name', 'Column Name', 'column_datatype', 'column_length', 'COLTYPE', 'COLUMN_LENGTH']].style.apply(highlight_missing, axis=1))
 
 if __name__ == '__main__':
     main()
