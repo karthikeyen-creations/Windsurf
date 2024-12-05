@@ -27,7 +27,7 @@ def highlight_missing(row):
 # Function to extract table names from SQL content
 def extract_tables_from_sql(sql_content):
     # Regex to find tables in tgabm00 schema
-    table_pattern = r'tgabm00\.(\w+)'
+    table_pattern = r'tgabm00\.(?:t\w+_)?(\w+)'
     tables = list(set(re.findall(table_pattern, sql_content, re.IGNORECASE)))
     return tables
 
@@ -39,6 +39,16 @@ def main():
     # File uploader for PostgreSQL function
     uploaded_file = st.sidebar.file_uploader("Upload a PostgreSQL function file", type=["sql"])
     
+    # List table names below the file selection field
+    if uploaded_file is not None:
+        sql_content = uploaded_file.read().decode('utf-8')
+        tables_in_sql = extract_tables_from_sql(sql_content)
+        st.sidebar.write("**Tables in Uploaded SQL File:**")
+        for table in tables_in_sql:
+            st.sidebar.write(f"- {table}")
+        # Reset file content for further processing
+        uploaded_file.seek(0)
+
     # Load data
     data_1, data_2 = load_data()
     
