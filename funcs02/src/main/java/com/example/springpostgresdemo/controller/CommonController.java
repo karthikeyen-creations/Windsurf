@@ -34,4 +34,10 @@ public class CommonController {
         System.out.println("rae preset: Handling GET data with metadata request");
         return commonService.getDataWithMetadata(condition);
     }
+
+    @GetMapping("/proc/{condition}")
+    public Map<String, Object> getDataWithMetadataProc(@PathVariable String condition) {
+        System.out.println("rae preset: Handling GET data with metadata procedure request");
+        return commonService.getDataWithMetadataProc(condition);
+    }
 }
