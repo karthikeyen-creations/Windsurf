@@ -27,7 +27,7 @@ def highlight_missing(row):
 # Function to extract table names from SQL content
 def extract_tables_from_sql(sql_content):
     # Regex to find tables in tgabm00 schema
-    table_pattern = r'tgabm00\.(?:t\w+_)?(\w+)'
+    table_pattern = r'tgabm00\.(?:t\w+?_)?(\w+)'
     tables = list(set(re.findall(table_pattern, sql_content, re.IGNORECASE)))
     return tables
 
