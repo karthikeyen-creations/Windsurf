@@ -126,6 +126,8 @@ def extract_postgres_queries(file_content):
         select_clause = match.group(1)
         table_name = match.group(2)
         line_number = file_content[:match.start()].count('\n') + 1
-        selects.append((table_name, select_clause, line_number))
+        # selects.append((table_name, select_clause, line_number))
+        column_value_pairs = [(col.strip(), None) for col in select_clause.split(',')]
+        selects.append((table_name, column_value_pairs, line_number))
 
     return updates, inserts, selects

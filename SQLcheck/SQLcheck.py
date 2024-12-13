@@ -47,8 +47,7 @@ def main():
             sqlite_dao.store_queries(db2_updates, "update", "DB2")
             sqlite_dao.store_queries(db2_inserts, "insert", "DB2")
             
-            logging.info(f"db2_inserts: {db2_inserts}")
-            logging.info(f"db2_selects: {db2_selects}")
+            # logging.info(f"db2_inserts: {db2_inserts}")
             sqlite_dao.store_queries(db2_selects, "select", "DB2")
             
             # # Store select queries and their column names
@@ -66,9 +65,11 @@ def main():
             #     else:
             #         logging.info(f"No column names found for query: {query}")
             
-            sqlite_dao.store_queries(db2_selects, "select", "DB2")
             sqlite_dao.store_queries(postgres_updates, "update", "Postgres")
             sqlite_dao.store_queries(postgres_inserts, "insert", "Postgres")
+            # logging.info(f"postgres_updates: {postgres_updates}")
+            # logging.info(f"db2_selects: {db2_selects}")
+            # logging.info(f"postgres_selects: {postgres_selects}")
             sqlite_dao.store_queries(postgres_selects, "select", "Postgres")
 
             # Read CSV file and store data into SQLite
@@ -126,8 +127,8 @@ def main():
             db2_table = selected_query.split(' ')[-1]
             
             # Fetch detailed data with query_id and db2_table
-            detailed_data = sqlite_dao.fetch_query_details(query_id, db2_table, "" if not query_id.startswith('select_') else None)
-            # logging.info(f"detailed_data: {detailed_data}")
+            detailed_data = sqlite_dao.fetch_query_details(query_id, db2_table)
+            logging.info(f"detailed_data: {detailed_data}")
             if detailed_data:
                 # Display detailed data with column names
                 column_names = ["PGcsv", "DB2csv", "Column Name", "DB2 Value", "Postgres Value", "Match"]
