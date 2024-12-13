@@ -68,8 +68,8 @@ def main():
             sqlite_dao.store_queries(postgres_updates, "update", "Postgres")
             sqlite_dao.store_queries(postgres_inserts, "insert", "Postgres")
             # logging.info(f"postgres_updates: {postgres_updates}")
-            # logging.info(f"db2_selects: {db2_selects}")
-            # logging.info(f"postgres_selects: {postgres_selects}")
+            logging.info(f"db2_selects: {db2_selects}")
+            logging.info(f"postgres_selects: {postgres_selects}")
             sqlite_dao.store_queries(postgres_selects, "select", "Postgres")
 
             # Read CSV file and store data into SQLite

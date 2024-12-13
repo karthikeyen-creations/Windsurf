@@ -6,14 +6,16 @@ logger = logging.getLogger(__name__)
 db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
 db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
 db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
-db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+# db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+([\s\S]+?)(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
 
 
 # Updated regex patterns for Postgres queries
 postgres_update_pattern = re.compile(r'UPDATE\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s+SET\s+([\s\S]+?)\s+WHERE', re.IGNORECASE)
 postgres_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
 postgres_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
-postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+# postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?(?:\s+JOIN\s+[\s\S]+?ON\s+[\s\S]+?|\s+WHERE|\s*;|$)', re.IGNORECASE)
 
 
 # Function to extract DB2 queries
