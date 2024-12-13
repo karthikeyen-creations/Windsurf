@@ -6,16 +6,21 @@ logger = logging.getLogger(__name__)
 db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
 db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
 db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
+db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+
 
 # Updated regex patterns for Postgres queries
 postgres_update_pattern = re.compile(r'UPDATE\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s+SET\s+([\s\S]+?)\s+WHERE', re.IGNORECASE)
 postgres_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
 postgres_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
+postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
+
 
 # Function to extract DB2 queries
 def extract_db2_queries(file_content, db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple):
     updates = []
     inserts = []
+    selects = []
 
     logger.info("Extracting DB2 queries...")
     # Extract UPDATE queries
@@ -60,12 +65,26 @@ def extract_db2_queries(file_content, db2_update_pattern, db2_insert_pattern_val
         inserts.append((table_name, column_value_pairs, line_number))
     logger.info(f"Extracted {len(inserts)} simple INSERT queries with VALUES.")
 
-    return updates, inserts
+    # Extract SELECT queries
+    logger.info("Extracting DB2 SELECT queries...")
+    for match in db2_select_pattern.finditer(file_content):
+        logger.debug(f"Matched SELECT statement: {match.group(0)}")
+        select_clause = match.group(1)
+        table_name = match.group(2)
+        line_number = file_content[:match.start()].count('\n') + 1
+        # selects.append((table_name, select_clause, line_number))
+        column_value_pairs = [(col.strip(), None) for col in select_clause.split(',')]
+        selects.append((table_name, column_value_pairs, line_number))
+    logger.info(f"Extracted {len(selects)} SELECT queries.")
+
+
+    return updates, inserts, selects
 
 # Function to extract Postgres queries
 def extract_postgres_queries(file_content):
     updates = []
     inserts = []
+    selects = []
 
     # Extract UPDATE queries
     for match in postgres_update_pattern.finditer(file_content):
@@ -102,4 +121,11 @@ def extract_postgres_queries(file_content):
         column_value_pairs = list(zip(columns, values))
         inserts.append((table_name, column_value_pairs, line_number))
 
-    return updates, inserts
+    # Extract SELECT queries
+    for match in postgres_select_pattern.finditer(file_content):
+        select_clause = match.group(1)
+        table_name = match.group(2)
+        line_number = file_content[:match.start()].count('\n') + 1
+        selects.append((table_name, select_clause, line_number))
+
+    return updates, inserts, selects
