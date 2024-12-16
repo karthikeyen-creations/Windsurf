@@ -167,7 +167,7 @@ with tab2:
     edited_directories = st.text_area("Edit Directories", value="\n".join(csv_content), height=100)
     
     if st.button("List Files"):
-        directories = get_directories_from_csv(edited_directories)
+        directories = edited_directories.strip().split('\n')
         
         # Save the edited directories to 'e1func/workfiles/dirlst.csv'
         with open('e1func/workfiles/dirlst.csv', 'w') as file:
