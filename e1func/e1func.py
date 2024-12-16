@@ -140,7 +140,7 @@ def update_temp_list(directory, index, new_sel):
 
 st.title("Directory File Lister")
 
-tab1, tab2 = st.tabs(["List Files", "Manage Selections"])
+tab1, tab2, tab3 = st.tabs(["List Files", "Manage Selections", "Selected Files"])
 
 with tab1:
     csv_content = """SQLcheck\\columns
@@ -211,3 +211,26 @@ with tab2:
         update_sel_values(os.path.join('e1func/workfiles', latest_file), updated_sel_values)
         st.success("Selections updated successfully!")
         st.rerun()  # Trigger a rerun
+
+with tab3:
+    sel_values, latest_file = get_latest_file_sel_values('e1func/workfiles')
+    st.subheader(f"Selected Files from {latest_file}")
+    
+    selected_files = [frp for frp, sel in sel_values.items() if sel == 'Y']
+    
+    if selected_files:
+        combined_content = ""
+        for frp in selected_files:
+            st.write(frp)
+            with open(frp, 'r') as file:
+                combined_content += file.read() + "\n"
+        st.text_area("Combined Content", value=combined_content, height=300)
+        
+        if st.button("Create Combined File"):
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            combined_filepath = f'e1func/workfiles/func{timestamp}.sql'
+            with open(combined_filepath, 'w') as combined_file:
+                combined_file.write(combined_content)
+            st.success(f"Combined file created: {combined_filepath}")
+    else:
+        st.write("No files selected.")
