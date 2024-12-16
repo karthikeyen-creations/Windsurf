@@ -29,8 +29,8 @@ def main():
         # Check if both files have the same name (case insensitive)
         if db2_file.name.lower() == postgres_file.name.lower():
             # Read file contents
-            db2_content = db2_file.read().decode("utf-8")
-            postgres_content = postgres_file.read().decode("utf-8")
+            db2_content = "\n".join([line for line in db2_file.read().decode("utf-8").splitlines() if not line.strip().startswith("--")])
+            postgres_content = "\n".join([line for line in postgres_file.read().decode("utf-8").splitlines() if not line.strip().startswith("--")])
 
             # Initialize controllers
             query_controller = QueryController(db2_content, postgres_content)
