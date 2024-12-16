@@ -1,0 +1,7 @@
+DIR,FN,FNE,FRP,SEL
+SQLcheck\columns,DA73_tables_columns,DA73_tables_columns.csv,SQLcheck\columns\DA73_tables_columns.csv,Y
+SQLcheck\columns,tgabm00_tables_columns,tgabm00_tables_columns.csv,SQLcheck\columns\tgabm00_tables_columns.csv,Y
+SQLcheck\sample\pg,e3rp5192,e3rp5192.sql,SQLcheck\sample\pg\e3rp5192.sql,Y
+SQLcheck\sample\pg,e3rps174,e3rps174.sql,SQLcheck\sample\pg\e3rps174.sql,Y
+SQLcheck\sample\pg,sample - Shortcut,sample - Shortcut.lnk,SQLcheck\sample\pg\sample - Shortcut.lnk,N
+SQLcheck\sample\pg,SAMPLE,SAMPLE.sql,SQLcheck\sample\pg\SAMPLE.sql,N
