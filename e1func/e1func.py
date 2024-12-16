@@ -6,7 +6,7 @@ from datetime import datetime
 # Set the app layout to wide and apply a colorful, professional theme suitable for dark mode
 st.set_page_config(
     layout="wide",
-    page_title="Directory File Lister",
+    page_title="Functions Consolidator",
     page_icon="📁",
     initial_sidebar_state="expanded"
 )
@@ -35,8 +35,16 @@ st.markdown("""
             color: #ffffff;
         }
         .css-1d391kg .stButton button {
-            background-color: #4CAF50;
+            background-color: #006400;
             color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 24px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .css-1d391kg .stButton button:hover {
+            background-color: #228B22;
         }
         .css-1d391kg .stTextArea textarea {
             background-color: #333333;
@@ -52,6 +60,28 @@ st.markdown("""
         }
         .css-1d391kg .stCheckbox div {
             color: #ffffff;
+        }
+        .stTabs [role="tab"] {
+            background-color: #4B0082;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 24px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .stTabs [role="tab"]:hover {
+            background-color: #551A8B;
+        }
+        .stTabs [role="tab"][aria-selected="true"] {
+            background-color: #8A2BE2;
+            color: #ffffff;
+        }
+        .stTabs [role="tab"][aria-selected="true"]:hover {
+            background-color: #7B68EE;
+        }
+        .stTabs [role="tab"]:focus {
+            outline: none;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -146,9 +176,23 @@ def list_directories(directory):
             all_directories.append(os.path.relpath(os.path.join(root, d), directory))
     return all_directories
 
+def get_function_name(filepath):
+    with open(filepath, 'r') as file:
+        for line in file:
+            if line.strip().startswith("CREATE OR REPLACE FUNCTION"):
+                return line.strip().split()[4].split('(')[0]
+    return ""
+
+def check_grant_execute(filepath):
+    with open(filepath, 'r') as file:
+        for line in file:
+            if "GRANT EXECUTE" in line:
+                return True
+    return False
+
 st.title("Directory File Lister")
 
-tab1, tab2, tab3, tab4 = st.tabs(["List Directories", "List Files", "Manage Selections", "Generate Combined File"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["List Directories", "List Files", "Manage Selections", "Generate Combined File", "Grant Access"])
 
 with tab1:
     base_directory = st.text_input("Base Directory", value=".")
@@ -248,5 +292,24 @@ with tab4:
             with open(combined_filepath, 'w') as combined_file:
                 combined_file.write(combined_content)
             st.success(f"Combined file created: {combined_filepath}")
+    else:
+        st.write("No files selected.")
+
+with tab5:
+    sel_values, latest_file = get_latest_file_sel_values('e1func/workfiles')
+    st.subheader(f"Grant Access for Selected Files from {latest_file}")
+    
+    selected_files = [frp for frp, sel in sel_values.items() if sel == 'Y']
+    
+    if selected_files:
+        grant_access_list = []
+        for frp in selected_files:
+            function_name = get_function_name(frp)
+            has_grant_execute = check_grant_execute(frp)
+            grant_access_list.append((frp, function_name, has_grant_execute))
+        
+        st.write("Selected Files with Grant Access Information:")
+        for frp, function_name, has_grant_execute in grant_access_list:
+            st.write(f"{frp} | {function_name} | {'Yes' if has_grant_execute else 'No'}")
     else:
         st.write("No files selected.")
