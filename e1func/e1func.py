@@ -311,5 +311,12 @@ with tab5:
         st.write("Selected Files with Grant Access Information:")
         for frp, function_name, has_grant_execute in grant_access_list:
             st.write(f"{frp} | {function_name} | {'Yes' if has_grant_execute else 'No'}")
+        
+        if st.button("Append Grant Execute Statements"):
+            for frp, function_name, has_grant_execute in grant_access_list:
+                if not has_grant_execute:
+                    with open(frp, 'a') as file:
+                        file.write(f"\nGRANT EXECUTE ON FUNCTION {function_name} TO gabmusr;")
+            st.success("Grant Execute statements appended successfully!")
     else:
         st.write("No files selected.")
