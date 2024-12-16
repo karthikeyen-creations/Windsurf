@@ -101,6 +101,8 @@ def list_files(directories):
         try:
             files = os.listdir(directory)
             for file in files:
+                if file.startswith('.'):
+                    continue
                 st.write(file)
                 file_list.append({
                     "DIR": directory,
