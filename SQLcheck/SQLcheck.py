@@ -5,100 +5,84 @@ from daos.sqlite_dao import SQLiteDAO
 import csv
 import pandas as pd
 import re
-
+import os
 
 logging.basicConfig(level=logging.INFO)
 
 def main():
     st.set_page_config(layout="wide")
     st.title("DB2 and Postgres Stored Procedure Query Extractor")
-    st.write("Upload DB2 and Postgres stored procedure files to extract UPDATE, INSERT, and SELECT queries.")
+    st.write("Select directories containing DB2 and Postgres stored procedure files to extract UPDATE, INSERT, and SELECT queries.")
 
-    # File uploaders with condition to disable after loading
+    # Directory selectors
     col1, col2 = st.columns(2)
 
     with col1:
-        db2_file = st.file_uploader("Choose a DB2 file", type=["txt", "sql"], key="db2", disabled=st.session_state.get('files_loaded', False))
+        db2_folder = st.text_input("Choose a DB2 directory", key="db2_dir")
     with col2:
-        postgres_file = st.file_uploader("Choose a Postgres file", type=["txt", "sql"], key="postgres", disabled=st.session_state.get('files_loaded', False))
+        postgres_folder = st.text_input("Choose a Postgres directory", key="postgres_dir")
 
-    if db2_file and postgres_file:
-        # Mark files as loaded
-        st.session_state['files_loaded'] = True
+    if db2_folder and postgres_folder:
+        # List files in the selected directories
+        db2_files = [f for f in os.listdir(db2_folder) if f.endswith(('.txt', '.sql'))]
+        postgres_files = [f for f in os.listdir(postgres_folder) if f.endswith(('.txt', '.sql'))]
 
-        # Check if both files have the same name (case insensitive)
-        if db2_file.name.lower() == postgres_file.name.lower():
-            # Read file contents
-            db2_content = "\n".join([line for line in db2_file.read().decode("utf-8").splitlines() if not line.strip().startswith("--")])
-            postgres_content = "\n".join([line for line in postgres_file.read().decode("utf-8").splitlines() if not line.strip().startswith("--")])
+        if db2_files and postgres_files:
+            # Dropdowns for file selection
+            col1, col2 = st.columns(2)
+            with col1:
+                db2_file_name = st.selectbox("Select a DB2 file", db2_files)
+            with col2:
+                postgres_file_name = st.selectbox("Select a Postgres file", postgres_files)
 
-            # Initialize controllers
-            query_controller = QueryController(db2_content, postgres_content)
+            if db2_file_name and postgres_file_name:
+                # Check if both files have the same name (case insensitive)
+                if db2_file_name.lower() == postgres_file_name.lower():
+                    # Read file contents
+                    with open(os.path.join(db2_folder, db2_file_name), 'r', encoding='utf-8') as db2_file:
+                        db2_content = "\n".join([line for line in db2_file if not line.strip().startswith("--")])
+                    with open(os.path.join(postgres_folder, postgres_file_name), 'r', encoding='utf-8') as postgres_file:
+                        postgres_content = "\n".join([line for line in postgres_file if not line.strip().startswith("--")])
 
-            # Extract queries
-            db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
-            db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
-            db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
+                    # Initialize controllers
+                    query_controller = QueryController(db2_content, postgres_content)
 
-            db2_updates, db2_inserts, postgres_updates, postgres_inserts, db2_selects, postgres_selects = query_controller.extract_queries(db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple)
+                    # Extract queries
+                    db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
+                    db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
+                    db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
 
-            # Store queries in the database
-            sqlite_dao = SQLiteDAO()
-            sqlite_dao.store_queries(db2_updates, "update", "DB2")
-            sqlite_dao.store_queries(db2_inserts, "insert", "DB2")
-            
-            # logging.info(f"db2_inserts: {db2_inserts}")
-            sqlite_dao.store_queries(db2_selects, "select", "DB2")
-            
-            # # Store select queries and their column names
-            # for i, (table_name, query, line_number) in enumerate(db2_selects, start=1):
-            #     query = 'SELECT ' + query + ' FROM ' + table_name
-            #     query_id = f"select_{i}"
-            #     logging.info(f"Extracting column names from query: {query}")
-            #     # match = re.search(r'SELECT\s+(.+?)\s+FROM', query, re.IGNORECASE)
-            #     match = re.search(r'SELECT\s+([\s\S]+?)\s+FROM', query, re.IGNORECASE)
-            #     logging.info(f"Match: {match}")
-            #     if match:
-            #         column_names = [col.strip() for col in match.group(1).split(',')]
-            #         logging.info(f"Identified column names: {column_names}")
-            #         sqlite_dao.store_queries([(table_name, [(str(i), col) for i, col in enumerate(column_names)], line_number)], "select_columns", "DB2")
-            #     else:
-            #         logging.info(f"No column names found for query: {query}")
-            
-            sqlite_dao.store_queries(postgres_updates, "update", "Postgres")
-            sqlite_dao.store_queries(postgres_inserts, "insert", "Postgres")
-            # logging.info(f"postgres_updates: {postgres_updates}")
-            logging.info(f"db2_selects: {db2_selects}")
-            logging.info(f"postgres_selects: {postgres_selects}")
-            sqlite_dao.store_queries(postgres_selects, "select", "Postgres")
+                    db2_updates, db2_inserts, postgres_updates, postgres_inserts, db2_selects, postgres_selects = query_controller.extract_queries(db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple)
 
-            # Read CSV file and store data into SQLite
+                    # Store queries in the database
+                    sqlite_dao = SQLiteDAO()
+                    sqlite_dao.store_queries(db2_updates, "update", "DB2")
+                    sqlite_dao.store_queries(db2_inserts, "insert", "DB2")
+                    sqlite_dao.store_queries(db2_selects, "select", "DB2")
+                    sqlite_dao.store_queries(postgres_updates, "update", "Postgres")
+                    sqlite_dao.store_queries(postgres_inserts, "insert", "Postgres")
+                    sqlite_dao.store_queries(postgres_selects, "select", "Postgres")
 
-            csv_path = 'SQLcheck/columns/DA73_tables_columns.csv'
-            with open(csv_path, mode='r', newline='') as csvfile:
-                csv_reader = csv.DictReader(csvfile)
-                csv_data = [(row['TNAME'], row['NAME'], row['COLTYPE'], row['COLUMN_LENGTH']) for row in csv_reader]
+                    # Read CSV file and store data into SQLite
+                    csv_path = 'SQLcheck/columns/DA73_tables_columns.csv'
+                    with open(csv_path, mode='r', newline='') as csvfile:
+                        csv_reader = csv.DictReader(csvfile)
+                        csv_data = [(row['TNAME'], row['NAME'], row['COLTYPE'], row['COLUMN_LENGTH']) for row in csv_reader]
 
-            # Store CSV data into SQLite
-            sqlite_dao.store_csv_data(csv_data)
+                    # Store CSV data into SQLite
+                    sqlite_dao.store_csv_data(csv_data)
 
-            # Read second CSV file and store data into SQLite
-            csv_path_postgres = 'SQLcheck/columns/tgabm00_tables_columns.csv'
-            with open(csv_path_postgres, mode='r', newline='') as csvfile:
-                csv_reader = csv.DictReader(csvfile)
-                csv_data_postgres = [(row['t_name'], row['column_name'], row['column_datatype'], row['column_length']) for row in csv_reader]
+                    # Read second CSV file and store data into SQLite
+                    csv_path_postgres = 'SQLcheck/columns/tgabm00_tables_columns.csv'
+                    with open(csv_path_postgres, mode='r', newline='') as csvfile:
+                        csv_reader = csv.DictReader(csvfile)
+                        csv_data_postgres = [(row['t_name'], row['column_name'], row['column_datatype'], row['column_length']) for row in csv_reader]
 
-            # Store CSV data into SQLite
-            sqlite_dao.store_csv_data(csv_data_postgres, source='Postgres')
+                    # Store CSV data into SQLite
+                    sqlite_dao.store_csv_data(csv_data_postgres, source='Postgres')
 
-            # # Fetch and display all data
-            # logging.info("Fetching all data with query: SELECT * FROM query_data")
-            # all_data = sqlite_dao.fetch_all_data()
-            # for row in all_data:
-            #     st.write(row)
-
-        else:
-            st.error("The file names do not match. Please upload files with the same name.")
+                else:
+                    st.error("The file names do not match. Please select files with the same name.")
 
     # Create dropdown for query selection with updated format
     query_options = []
