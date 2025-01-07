@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 def main():
     st.set_page_config(layout="wide")
     st.title("DB2 and Postgres Stored Procedure Query Extractor")
-    st.write("Select directories containing DB2 and Postgres stored procedure files to extract UPDATE, INSERT, and SELECT queries.")
+    st.write("Select directories containing DB2 and Postgres stored procedure files to extract UPDATE, INSERT, SELECT queries, and Parameters.")
 
     # Directory selectors
     col1, col2 = st.columns(2)
@@ -47,21 +47,24 @@ def main():
                     # Initialize controllers
                     query_controller = QueryController(db2_content, postgres_content)
 
-                    # Extract queries
+                    # Extract queries and parameters
                     db2_update_pattern = re.compile(r'UPDATE\s+(\w+)(?:\s+\w+)?\s+SET\s+([\s\S]+?)(?:\s+WHERE|\s*;)', re.IGNORECASE)
                     db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*SELECT\s*([\s\S]+?)\s+FROM', re.IGNORECASE)
                     db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
+                    db2_parameter_pattern = re.compile(r'IN\s+(\w+)\s+(\w+)', re.IGNORECASE)
 
-                    db2_updates, db2_inserts, postgres_updates, postgres_inserts, db2_selects, postgres_selects = query_controller.extract_queries(db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple)
+                    db2_updates, db2_inserts, postgres_updates, postgres_inserts, db2_selects, postgres_selects, db2_parameters, postgres_parameters = query_controller.extract_queries_and_parameters(db2_update_pattern)
 
-                    # Store queries in the database
+                    # Store queries and parameters in the database
                     sqlite_dao = SQLiteDAO()
                     sqlite_dao.store_queries(db2_updates, "update", "DB2")
                     sqlite_dao.store_queries(db2_inserts, "insert", "DB2")
                     sqlite_dao.store_queries(db2_selects, "select", "DB2")
+                    sqlite_dao.store_queries(db2_parameters, "parameter", "DB2")
                     sqlite_dao.store_queries(postgres_updates, "update", "Postgres")
                     sqlite_dao.store_queries(postgres_inserts, "insert", "Postgres")
                     sqlite_dao.store_queries(postgres_selects, "select", "Postgres")
+                    sqlite_dao.store_queries(postgres_parameters, "parameter", "Postgres")
 
                     # Read CSV file and store data into SQLite
                     csv_path = 'SQLcheck/columns/DA73_tables_columns.csv'
@@ -86,14 +89,15 @@ def main():
 
     # Create dropdown for query selection with updated format
     query_options = []
-    if 'db2_updates' in locals() and 'postgres_updates' in locals() and 'db2_inserts' in locals() and 'postgres_inserts' in locals() and 'db2_selects' in locals() and 'postgres_selects' in locals():
+    if 'db2_updates' in locals() and 'postgres_updates' in locals() and 'db2_inserts' in locals() and 'postgres_inserts' in locals() and 'db2_selects' in locals() and 'postgres_selects' in locals() and 'db2_parameters' in locals() and 'postgres_parameters' in locals():
         for i, ((db2_table, _, db2_line), (pg_table, _, pg_line)) in enumerate(zip(db2_updates, postgres_updates)):
             query_options.append(f"update{i+1} : (DB2 line: {db2_line}, postgres line: {pg_line}) UPDATE {db2_table}")
         for i, ((db2_table, _, db2_line), (pg_table, _, pg_line)) in enumerate(zip(db2_inserts, postgres_inserts)):
             query_options.append(f"insert{i+1} : (DB2 line: {db2_line}, postgres line: {pg_line}) INSERT INTO {db2_table}")
         for i, ((db2_table, _, db2_line), (pg_table, _, pg_line)) in enumerate(zip(db2_selects, postgres_selects)):
             query_options.append(f"select{i+1} : (DB2 line: {db2_line}, postgres line: {pg_line}) SELECT {db2_table}")
-
+        for i, ((db2_param, db2_type, db2_line), (pg_param, pg_type, pg_line)) in enumerate(zip(db2_parameters, postgres_parameters)):
+            query_options.append(f"parameter{i+1} : (DB2 line: {db2_line}, postgres line: {pg_line}) PARAMETER {db2_param} {db2_type}")
 
     logging.info(f"Generated query options: {query_options}")
 
@@ -105,7 +109,7 @@ def main():
 
             # Display the selected query's details using a database query
             query_id = selected_query.split(' ')[0]
-            query_id = query_id.replace('update', 'update_').replace('insert', 'insert_').replace('select', 'select_')
+            query_id = query_id.replace('update', 'update_').replace('insert', 'insert_').replace('select', 'select_').replace('parameter', 'parameter_')
 
             # Extract db2_table from selected_query
             db2_table = selected_query.split(' ')[-1]

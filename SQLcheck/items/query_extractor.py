@@ -8,7 +8,8 @@ db2_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([
 db2_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+)(?:\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
 # db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
 db2_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+([\s\S]+?)(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
-
+db2_parameter_pattern = re.compile(r'\b(IN|OUT)\s+(\w+)\s+(\w+\(\d+\))', re.IGNORECASE)
+db2_procedure_pattern = re.compile(r'CREATE\s+PROCEDURE\s+(\w+\.\w+)\s*\(([\s\S]+?)\)\s*DYNAMIC\s+RESULT\s+SETS', re.IGNORECASE)
 
 # Updated regex patterns for Postgres queries
 postgres_update_pattern = re.compile(r'UPDATE\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s+SET\s+([\s\S]+?)\s+WHERE', re.IGNORECASE)
@@ -16,13 +17,16 @@ postgres_insert_pattern_values = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w
 postgres_insert_pattern_simple = re.compile(r'INSERT\s+INTO\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\);', re.IGNORECASE)
 # postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+WHERE|\s*;|$)', re.IGNORECASE)
 postgres_select_pattern = re.compile(r'SELECT\s+([\s\S]+?)\s+FROM\s+(\w+\.\w+)(?:\s+\w+)?(?:\s+AS\s+\w+)?(?:\s+JOIN\s+[\s\S]+?ON\s+[\s\S]+?|\s+WHERE|\s*;|$)', re.IGNORECASE)
+postgres_parameter_pattern = re.compile(r'\b(OUT\s+)?(\w+)\s+(\w+\(\d+\))', re.IGNORECASE)
+postgres_function_pattern = re.compile(r'CREATE\s+OR\s+REPLACE\s+FUNCTION\s+(\w+\.\w+)\s*\(([\s\S]+?)\)\s+RETURNS\s+RECORD', re.IGNORECASE)
 
 
 # Function to extract DB2 queries
-def extract_db2_queries(file_content, db2_update_pattern, db2_insert_pattern_values, db2_insert_pattern_simple):
+def extract_db2_queries_and_parameters(file_content):
     updates = []
     inserts = []
     selects = []
+    parameters = []
 
     logger.info("Extracting DB2 queries...")
     # Extract UPDATE queries
@@ -41,6 +45,7 @@ def extract_db2_queries(file_content, db2_update_pattern, db2_insert_pattern_val
                 column = column.split('.')[-1].strip()
                 column_value_pairs.append((column, value.strip()))
         line_number = file_content[:match.start()].count('\n') + 1
+        # print(table_name, column_value_pairs, line_number)
         updates.append((table_name, column_value_pairs, line_number))
     logger.info(f"Extracted {len(updates)} UPDATE queries.")
 
@@ -79,14 +84,47 @@ def extract_db2_queries(file_content, db2_update_pattern, db2_insert_pattern_val
         selects.append((table_name, column_value_pairs, line_number))
     logger.info(f"Extracted {len(selects)} SELECT queries.")
 
+    # # Extract parameters
+    # logger.info("Extracting DB2 parameters...")
+    # for match in db2_parameter_pattern.finditer(file_content):
+    #     # print(match)
+    #     table_name = 'PARAMETERS'
+    #     param_type = match.group(1)
+    #     param_name = match.group(2)
+    #     column_value_pairs = [(param_name, param_type)]
+    #     if not parameters:
+    #         line_number = file_content[:match.start()].count('\n') + 1
+    #     else:
+    #         line_number = parameters[0][2]
+    #     # print(table_name, column_value_pairs, line_number)
+    #     parameters.append((table_name, column_value_pairs, line_number))
+    # logger.info(f"Extracted {len(parameters)} parameters.")
 
-    return updates, inserts, selects
+    logger.info("Extracting DB2 procedures...")
+    for match in db2_procedure_pattern.finditer(file_content):
+        # print(match)
+        # print(match.group(2))
+        logger.debug(f"Matched procedure statement: {match.group(0)}")
+        table_name = 'PROCEDURES'
+        parameter_lst = match.group(2)
+        parameter_list = re.split(r',\s*(?![^()]*\))', parameter_lst)
+        # print(parameter_list)
+        column_value_pairs = []
+        for param in parameter_list:
+            param_type, param_name, dtype = param.split()
+            # print(param_name, param_type)
+            column_value_pairs.append((param_name, param_type))
+        line_number = file_content[:match.start()].count('\n') + 1
+        parameters.append((table_name, column_value_pairs, line_number))
+
+    return updates, inserts, selects, parameters
 
 # Function to extract Postgres queries
-def extract_postgres_queries(file_content):
+def extract_postgres_queries_and_parameters(file_content):
     updates = []
     inserts = []
     selects = []
+    parameters = []
 
     # Extract UPDATE queries
     for match in postgres_update_pattern.finditer(file_content):
@@ -132,4 +170,47 @@ def extract_postgres_queries(file_content):
         column_value_pairs = [(col.strip(), None) for col in select_clause.split(',')]
         selects.append((table_name, column_value_pairs, line_number))
 
-    return updates, inserts, selects
+    # # Extract parameters
+    # logger.info("Extracting Postgres parameters...")
+    # for match in postgres_parameter_pattern.finditer(file_content):
+    #     # print(match)
+    #     table_name = 'PARAMETERS'
+    #     param_name = match.group(2)
+    #     param_type = match.group(1)
+    #     column_value_pairs = [(param_name, param_type if param_type else 'IN')]
+    #     if not parameters:
+    #         line_number = file_content[:match.start()].count('\n') + 1
+    #     else:
+    #         line_number = parameters[0][2]
+    #     # print(table_name, column_value_pairs, line_number)
+    #     parameters.append((table_name, column_value_pairs, line_number))
+    # logger.info(f"Extracted {len(parameters)} parameters.")
+
+    # Extract functions
+    logger.info("Extracting Postgres parameters...")
+    for match in postgres_function_pattern.finditer(file_content):
+        print(f"Matched function statement: {match.group(0)}")
+        table_name = 'PARAMETERS'
+        parameter_lst = match.group(2)
+        parameter_list = re.split(r',\s*(?![^()]*\))', parameter_lst)
+        print(f"parameter_list: {parameter_list}")
+        column_value_pairs = []
+        for param in parameter_list:
+            if 'OUT ' in param:
+                param_type, param_name, dtype = param.split()
+                column_value_pairs.append((param_name, param_type))
+            elif 'IN_' in param:
+                param_name, dtype = param.split()
+                param_type = 'IN'
+                column_value_pairs.append((param_name, 'IN'))
+        print(column_value_pairs)
+        if not parameters:
+            line_number = file_content[:match.start()].count('\n') + 1
+        else:
+            line_number = parameters[0][2]
+        # print(table_name, column_value_pairs, line_number)
+        parameters.append((table_name, column_value_pairs, line_number))
+    logger.info(f"Extracted {len(parameters)} parameters.")
+
+    return updates, inserts, selects, parameters
+
