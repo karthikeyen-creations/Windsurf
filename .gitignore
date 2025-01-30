@@ -162,3 +162,7 @@ cython_debug/
 SQLcheck/sample
 SQL
 sqlto
+cpytool/**/*.zip
+cpytool/*/*.db
+cpytool/**/*.db
+
