@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB2 to PostgreSQL Conversion Guide</title>
+    <style>
+        body {
+            margin-left: 5%;
+            margin-right: 5%;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 5%;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .light-theme {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            color: #bb86fc;
+        }
+
+        .light-theme h1,
+        .light-theme h2,
+        .light-theme h3,
+        .light-theme h4,
+        .light-theme h5,
+        .light-theme h6 {
+            color: #6200ea;
+        }
+
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .light-theme pre {
+            background-color: #f5f5f5;
+        }
+
+        code {
+            background-color: #2d2d2d;
+            color: #dcdcdc;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .light-theme code {
+            background-color: #e0e0e0;
+            color: #000000;
+        }
+
+        .toggle-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background-color: #bb86fc;
+            color: #000000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        iframe {
+            border: none;
+            width: 100%;
+            display: block;
+            overflow: hidden;
+            /* Hide scrollbars */
+        }
+
+        .nav-menu {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100%;
+            background-color: #333;
+            color: #fff;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateX(-100%);
+        }
+
+        .nav-menu.open {
+            transform: translateX(0);
+        }
+
+        .nav-menu ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .nav-menu li {
+            padding: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .nav-menu a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .nav-menu a:hover {
+            background-color: #444;
+        }
+
+        .nav-toggle {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            padding: 10px 20px;
+            background-color: #bb86fc;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="nav-toggle" onclick="toggleNavMenu()">☰ Index</button>
+    <nav class="nav-menu" id="navMenu">
+        <ul>
+            <li><a href="#section1" onclick="scrollToSection('section1')">Introduction</a></li>
+            <li><a href="#section2" onclick="scrollToSection('section2')">Prerequisites</a></li>
+            <li><a href="#section3a" onclick="scrollToSection('section3a')">Conversion Methodology</a></li>
+            <li><a href="#section4" onclick="scrollToSection('section4')">Testing</a></li>
+            <li><a href="#section5" onclick="scrollToSection('section5')">Troubleshooting and Optimization</a></li>
+            <li><a href="#section6" onclick="scrollToSection('section6')">Function Created</a></li>
+            <li><a href="#section7" onclick="scrollToSection('section7')">Conclusion</a></li>
+        </ul>
+    </nav>
+
+    <button id="themeToggle" class="toggle-button" onclick="toggleTheme()">Theme</button>
+    <div class="container">
+        <h1>Instructions on Converting DB2 Stored Procedures to PostgreSQL Functions</h1>
+    </div>
+
+
+    <div class="container" id="section1">
+        <h2>1. Introduction</h2>
+        <h3>Objective</h3>
+        <p>This document provides a comprehensive, systematic framework used for the migration of IBM DB2 stored
+            procedures to PostgreSQL functions. The objective of this migration is to ensure the semantic and syntactic
+            fidelity of database logic while enhancing maintainability, scalability, and interoperability within the
+            AMEX enterprise architecture. The focus is on the LETT (<code>Live Event Tracking Tool</code>) and EMS
+            (<code>Experiential Marketing Services</code>) modules under GABM
+            (<code>Global Advertising and Brand Management</code>). These modules play a critical role in AMEX’s
+            data-driven decision-making process, and the migration must ensure uninterrupted functionality and optimized
+            performance.</p>
+        <p>This methodology accounts for architectural differences between DB2 and PostgreSQL, including:</p>
+        <ul>
+            <li>Variations in procedural languages (<code>SQL PL</code> vs. <code>PL/pgSQL</code>)</li>
+            <li>Data type equivalencies and constraints</li>
+            <li>Transaction management and exception handling paradigms</li>
+        </ul>
+        <h3>Scope</h3>
+        <p>This document covers the following aspects of the DB2 to PostgreSQL migration:</p>
+        <ul>
+            <li>Identification and categorization of stored procedures for conversion</li>
+            <li>Step-by-step procedural transformations, including syntax conversion and logic restructuring</li>
+            <li>Schema consistency requirements and database object mapping</li>
+            <li>Implementation of robust error handling mechanisms</li>
+            <li>Ensuring seamless integration with existing business logic and applications</li>
+        </ul>
+        <h3>Organization</h3>
+        <ul>
+            <li><strong>Enterprise:</strong> AMEX</li>
+            <li><strong>Relevant Modules:</strong>
+                <ul>
+                    <li>LETT - <code>Live Event Tracking Tool</code></li>
+                    <li>EMS - <code>Experiential Marketing Services</code></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <div class="container" id="section2">
+        <h2>2. Prerequisites</h2>
+        <h3>Software Requirements</h3>
+        <p>A complete migration requires the following software and tools:</p>
+        <ul>
+            <li><strong>DBeaver</strong> – A robust database management tool that provides a comprehensive interface for
+                querying, managing, and interacting with both DB2 and PostgreSQL databases. It supports advanced
+                features such as data visualization, SQL debugging, and database schema comparison, making it an
+                essential tool for database administrators and developers during the migration process.</li>
+            <li><strong>Docker</strong> – Enables containerized PostgreSQL instance deployment for testing.</li>
+            <li><strong>VS Code</strong> – Serves as the primary Integrated Development Environment (IDE) for writing
+                and debugging SQL scripts. It offers extensive support for SQL development through various extensions,
+                such as the SQL Server (mssql) extension for connecting to DB2 and PostgreSQL databases. VS Code
+                provides features like IntelliSense for SQL, code snippets, and integrated terminal, which streamline
+                the development and debugging process. Additionally, its version control integration with GitHub ensures
+                efficient collaboration and code management during the migration.</li>
+            <li><strong>Excel</strong> – Used for data comparisons and validation analysis.</li>
+            <li><strong>PostgreSQL (local instance)</strong> – Ensures local testing before deployment.</li>
+            <li><strong>GitHub Copilot</strong> – Provides AI-driven code suggestions to expedite SQL translation. While
+                AMEX allows only autocomplete features, GitHub Copilot can still significantly enhance productivity by
+                offering context-aware code completions, reducing manual coding effort, and minimizing syntax errors.
+                This tool integrates seamlessly with VS Code, ensuring that developers can leverage its capabilities
+                within their preferred development environment.</li>
+        </ul>
+        <h3>Access Requirements</h3>
+        <p>To perform the migration successfully, the following access permissions are mandatory:</p>
+        <ul>
+            <li><strong>DB2 Database Credentials</strong> – Required to extract stored procedures and analyze existing
+                logic.</li>
+            <li><strong>E1 Server (PostgreSQL Development Environment)</strong> – Used for iterative testing and
+                validation.</li>
+            <li><strong>E2 Server (Pre-Production Testing Instance)</strong> – Facilitates integration testing before
+                production deployment.</li>
+            <li><strong>JIRA</strong> – Tracks migration progress, tickets, and dependencies.</li>
+            <li><strong>GitHub Copilot</strong> – Provides AI-driven suggestions for SQL translation and error
+                correction.</li>
+            <li><strong>Network Proxy Access</strong> – Ensures connectivity between development tools and database
+                environments.</li>
+        </ul>
+    </div>
+    <div class="container" id="section3a">
+        <h2>3. Conversion Methodology</h2>
+
+        <h3>Procedural Transformation</h3>
+
+        <h4>1. Translating DB2 Stored Procedures to PostgreSQL Functions</h4>
+        <ul>
+            <li>Maintain semantic equivalence across all parameters and logic flows.</li>
+            <li>Adhere strictly to schema conventions, ensuring functions are created under <code>tgabm10</code>.</li>
+        </ul>
+
+        <h5>Example: DB2 Stored Procedure</h5>
+        <pre><code class="language-sql">CREATE PROCEDURE SYSPROC.SP_SAMPLE (IN P_ID INT, OUT P_NAME VARCHAR(50))
+BEGIN
+SELECT NAME INTO P_NAME FROM TGABM10.USERS WHERE ID = P_ID;
+END;</code></pre>
+
+        <h5>Equivalent PostgreSQL Function</h5>
+        <pre><code class="language-sql">CREATE OR REPLACE FUNCTION tgabm10.sp_sample(p_id INT, OUT p_name VARCHAR(50)) RETURNS RECORD AS $$
+BEGIN
+SELECT name INTO p_name FROM tgabm10.users WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+
+        <h4>2. Retaining Logical Structure During Migration</h4>
+        <p>The logical structure of a stored procedure must be preserved to maintain business logic consistency. To
+            achieve this:</p>
+        <ul>
+            <li>Preserve conditional structures (<code>IF</code>, <code>CASE</code>, <code>LOOP</code>).</li>
+            <li>Retain explicit transaction control (if applicable).</li>
+            <li>Ensure that control-flow statements such as <code>LEAVE</code>, <code>ITERATE</code>, <code>GOTO</code>
+                and <code>RETURN</code> are correctly mapped.</li>
+        </ul>
+
+        <h5>Example: Comprehensive DB2 Logic Retention</h5>
+
+        <h6>DB2 Stored Procedure</h6>
+        <pre><code class="language-sql">CREATE PROCEDURE SYSPROC.SP_COMPLEX_LOGIC (IN P_ID INT, OUT P_RESULT VARCHAR(50))
+BEGIN
+DECLARE V_COUNT INT;
+DECLARE V_NAME VARCHAR(50);
+DECLARE V_STATUS CHAR(1);
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+SET P_RESULT = 'Error Occurred';
+END;
+
+-- Conditional structure using IF
+SELECT COUNT(*) INTO V_COUNT FROM TGABM10.USERS WHERE ID = P_ID;
+IF V_COUNT = 0 THEN
+SET P_RESULT = 'User Not Found';
+RETURN;
+END IF;
+
+-- Conditional structure using CASE
+SELECT NAME, STATUS INTO V_NAME, V_STATUS FROM TGABM10.USERS WHERE ID = P_ID;
+CASE V_STATUS
+WHEN 'A' THEN SET P_RESULT = V_NAME || ' is Active';
+WHEN 'I' THEN SET P_RESULT = V_NAME || ' is Inactive';
+ELSE SET P_RESULT = V_NAME || ' has Unknown Status';
+END CASE;
+
+-- Loop structure with LEAVE and ITERATE
+DECLARE C1 CURSOR FOR SELECT NAME FROM TGABM10.USERS;
+OPEN C1;
+FETCH C1 INTO V_NAME;
+WHILE V_NAME IS NOT NULL DO
+IF V_NAME = 'John Doe' THEN
+ITERATE;
+END IF;
+IF V_NAME = 'Jane Doe' THEN
+LEAVE;
+END IF;
+FETCH C1 INTO V_NAME;
+END WHILE;
+CLOSE C1;
+
+-- GOTO statement
+IF V_COUNT > 10 THEN
+GOTO END_PROCEDURE;
+END IF;
+
+SET P_RESULT = 'Completed Successfully';
+
+END_PROCEDURE:
+RETURN;
+END;</code></pre>
+
+        <h6>PostgreSQL Equivalent</h6>
+        <pre><code class="language-sql">CREATE OR REPLACE FUNCTION tgabm10.sp_complex_logic(p_id INT, OUT p_result VARCHAR(50)) RETURNS RECORD AS $$
+DECLARE
+v_count INT;
+v_name VARCHAR(50);
+v_status CHAR(1);
+c1 CURSOR FOR SELECT name FROM tgabm10.users;
+BEGIN
+-- Conditional structure using IF
+SELECT COUNT(*) INTO v_count FROM tgabm10.users WHERE id = p_id;
+IF v_count = 0 THEN
+p_result := 'User Not Found';
+RETURN;
+END IF;
+
+-- Conditional structure using CASE
+SELECT name, status INTO v_name, v_status FROM tgabm10.users WHERE id = p_id;
+CASE v_status
+WHEN 'A' THEN p_result := v_name || ' is Active';
+WHEN 'I' THEN p_result := v_name || ' is Inactive';
+ELSE p_result := v_name || ' has Unknown Status';
+END CASE;
+
+-- Loop structure with LEAVE and ITERATE
+OPEN c1;
+FETCH c1 INTO v_name;
+WHILE v_name IS NOT NULL LOOP
+IF v_name = 'John Doe' THEN
+CONTINUE;
+END IF;
+IF v_name = 'Jane Doe' THEN
+EXIT;
+END IF;
+FETCH c1 INTO v_name;
+END LOOP;
+CLOSE c1;
+
+-- GOTO statement equivalent
+IF v_count > 10 THEN
+p_result := 'Didnt Complete Successfully';
+END IF;
+
+if p_result != 'Didnt Complete Successfully' THEN
+p_result := 'Completed Successfully';
+END IF;
+
+RETURN;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+
+        <h4>3. Output Handling and Cursor Implementation</h4>
+        <p>Convert DB2 <code>OUT</code> parameters into PostgreSQL function return records. This is achieved by
+            explicitly defining a composite type or utilizing an implicit record structure in the function signature.
+        </p>
+
+        <h5>Example: DB2 Stored Procedure with OUT Parameters</h5>
+        <pre><code class="language-sql">CREATE PROCEDURE SYSPROC.SP_SAMPLE (IN P_ID INT, OUT P_NAME VARCHAR(50))
+BEGIN
+SELECT NAME INTO P_NAME FROM SYSPROC.USERS WHERE ID = P_ID;
+END;</code></pre>
+
+        <h5>Equivalent PostgreSQL Function</h5>
+        <pre><code class="language-sql">CREATE OR REPLACE FUNCTION tgabm10.sp_sample(p_id INT, OUT p_name VARCHAR(50)) RETURNS RECORD AS $$
+BEGIN
+SELECT name INTO p_name FROM tgabm10.users WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+
+        <p>In this conversion, the PostgreSQL function explicitly defines the <code>OUT</code> parameter as part of the
+            function signature, automatically returning the values as a record. This ensures compatibility while
+            preserving the procedural intent of the original DB2 stored procedure.</p>
+
+        <p>Explicitly define cursor-based result sets with an <code>OUT</code> parameter (<code>RESULT_SET_1</code>).
+        </p>
+
+        <h5>Example: DB2 Stored Procedure with Cursor Logic</h5>
+        <pre><code class="language-sql">CREATE PROCEDURE SYSPROC.SP_CURSOR_SAMPLE (IN P_ID INT)
+BEGIN
+DECLARE C1 CURSOR WITH RETURN FOR
+SELECT NAME FROM SYSPROC.USERS WHERE ID = P_ID;
+
+OPEN C1;
+END;</code></pre>
+
+        <h5>Equivalent PostgreSQL Function</h5>
+        <pre><code class="language-sql">CREATE OR REPLACE FUNCTION tgabm10.sp_cursor_sample(p_id INT, OUT result_set_1 refcursor) RETURNS RECORD AS $$
+BEGIN
+OPEN result_set_1 FOR
+SELECT name FROM tgabm10.users WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+
+        <p>In this conversion, the PostgreSQL function uses a <code>refcursor</code> to handle the cursor logic. The
+            cursor is opened for the specified query and returned as part of the function's output, ensuring
+            compatibility with the original DB2 stored procedure.</p>
+
+        <p>Standardize error propagation using <code>SQLCODE CHAR(10)</code> and <code>ERR_MSG CHAR(100)</code> for
+            enhanced debugging.</p>
+
+        <h4>4. Exception Handling in PostgreSQL</h4>
+        <p>Utilize <code>BEGIN...EXCEPTION...END</code> for structured error management.</p>
+
+        <h5>Example:</h5>
+        <pre><code class="language-sql">BEGIN
+-- SQL operation
+EXCEPTION
+WHEN OTHERS THEN
+ERR_MSG := SQLERRM;
+END;</code></pre>
+
+        <p>Prevent <code>NO_DATA_FOUND</code> errors by performing explicit null-value checks before <code>INTO</code>
+            operations. This can be accomplished by verifying the presence of data prior to attempting a selection. For
+            example:</p>
+
+        <pre><code class="language-sql">DECLARE v_exists INT;
+BEGIN
+SELECT 1 INTO v_exists FROM tgabm10.users WHERE id = p_id LIMIT 1;
+
+IF v_exists IS NOT NULL THEN
+SQLCODE := '0';
+-- Statements for SQLCODE := '0';
+ELSE
+SQLCODE := '100';
+-- Statements for SQLCODE := '100';
+END IF;
+EXCEPTION
+WHEN OTHERS THEN
+SQLCODE := SQLSTATE;
+-- Statements for other errors;
+ERR_MSG := SQLERRM;
+END;</code></pre>
+
+        <p>This approach ensures that an explicit check is performed before attempting an <code>INTO</code> operation,
+            thus mitigating potential <code>NO_DATA_FOUND</code> errors.</p>
+    </div>
+    <div class="container" id="section3b">
+        <h4>5. Utilizing <code>SQLSTATE</code> for Error Handling</h4>
+        <p><code>SQLSTATE</code> is a standardized code that indicates the outcome of SQL operations. It is crucial for
+            identifying specific error conditions and implementing appropriate error handling mechanisms.</p>
+        <h5>Example:</h5>
+        <pre><code>BEGIN
+-- SQL operation
+EXCEPTION
+WHEN OTHERS THEN
+SQLCODE := SQLSTATE;
+ERR_MSG := SQLERRM;
+END;</code></pre>
+        <p>In this example, <code>SQLSTATE</code> captures the error code, and <code>SQLERRM</code> provides the error
+            message. These values are assigned to <code>SQLCODE</code> and <code>ERR_MSG</code> respectively, allowing
+            for detailed error diagnostics and logging.</p>
+
+        <h4>6. SQL Execution Diagnostics</h4>
+        <p>Use <code>GET DIAGNOSTICS</code> to retrieve row impact metrics for <code>INSERT</code> and
+            <code>UPDATE</code> operations.
+        </p>
+        <pre><code>GET DIAGNOSTICS rec_exists = ROW_COUNT;
+
+IF rec_exists > 0 THEN
+SQLCODE := '0';
+ELSE
+SQLCODE := '100';
+END IF;</code></pre>
+        <p>This snippet demonstrates how <code>GET DIAGNOSTICS</code> can be used to capture the number of rows affected
+            by an <code>INSERT</code> or <code>UPDATE</code> operation. The resulting row count is stored in
+            <code>rec_exists</code>, which can then be used to determine the success or failure of the operation.
+        </p>
+
+        <h4>7. Replacing Temporary Tables with Arrays</h4>
+        <p>To avoid runtime errors associated with temporary tables, replace their usage with arrays in PostgreSQL.
+            Arrays provide a more efficient and error-free way to handle temporary data within functions.</p>
+        <h5>Example: DB2 Stored Procedure with Temporary Table</h5>
+        <pre><code>CREATE PROCEDURE SYSPROC.SP_TEMP_TABLE_SAMPLE (IN P_ID INT, OUT P_RESULT VARCHAR(50))
+BEGIN
+DECLARE GLOBAL TEMPORARY TABLE SESSION.TEMP_USERS AS
+(SELECT NAME FROM SYSPROC.USERS WHERE ID = P_ID) WITH DATA;
+
+SELECT NAME INTO P_RESULT FROM SESSION.TEMP_USERS;
+END;</code></pre>
+        <h5>Equivalent PostgreSQL Function Using Arrays</h5>
+        <pre><code>CREATE OR REPLACE FUNCTION tgabm10.sp_temp_table_sample(p_id INT, OUT p_result VARCHAR(50)) RETURNS RECORD AS $$
+DECLARE
+temp_users TEXT[];
+BEGIN
+SELECT ARRAY(SELECT name FROM tgabm10.users WHERE id = p_id) INTO temp_users;
+
+IF array_length(temp_users, 1) > 0 THEN
+p_result := temp_users[1];
+ELSE
+p_result := 'User Not Found';
+END IF;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+        <p>In this conversion, the temporary table is replaced with an array (<code>temp_users</code>). The array is
+            populated with the results of the query, and the first element is used to set the output parameter. This
+            approach eliminates the need for temporary tables and reduces the risk of runtime errors.</p>
+
+        <h4>8. Replacing <code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code> with <code>BEGIN...EXCEPTION...END</code>
+        </h4>
+        <p>To replace <code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code> in DB2 with
+            <code>BEGIN...EXCEPTION...END</code> in PostgreSQL, follow these steps:
+        </p>
+        <ol>
+            <li>Identify the DB2 stored procedure containing the <code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code>.
+            </li>
+            <li>Replace the <code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code> block with a
+                <code>BEGIN...EXCEPTION...END</code> block in PostgreSQL.
+            </li>
+            <li>Ensure that the error handling logic within the <code>EXCEPTION</code> block matches the original DB2
+                logic.</li>
+        </ol>
+        <h5>Example: DB2 Stored Procedure with <code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code></h5>
+        <pre><code>CREATE PROCEDURE SYSPROC.SP_SAMPLE (IN P_ID INT, OUT P_NAME VARCHAR(50))
+BEGIN
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+SET P_NAME = 'Error Occurred';
+END;
+
+SELECT NAME INTO P_NAME FROM TGABM10.USERS WHERE ID = P_ID;
+END;</code></pre>
+        <h5>Equivalent PostgreSQL Function with <code>BEGIN...EXCEPTION...END</code></h5>
+        <pre><code>CREATE OR REPLACE FUNCTION tgabm10.sp_sample(p_id INT, OUT p_name VARCHAR(50)) RETURNS RECORD AS $$
+BEGIN
+BEGIN
+SELECT name INTO p_name FROM tgabm10.users WHERE id = p_id;
+EXCEPTION
+WHEN OTHERS THEN
+p_name := 'Error Occurred';
+END;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+        <p>This transformation ensures that the error handling mechanism in PostgreSQL is equivalent to the original DB2
+            logic, maintaining the integrity of the stored procedure's functionality.</p>
+
+        <h4>9. Replacing <code>DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'</code> with
+            <code>EXCEPTION WHEN UNIQUE_VIOLATION THEN</code>
+        </h4>
+        <p>To replace <code>DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'</code> in DB2 with
+            <code>EXCEPTION WHEN UNIQUE_VIOLATION THEN</code> in PostgreSQL, follow these steps:
+        </p>
+        <ol>
+            <li>Identify the DB2 stored procedure containing the
+                <code>DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'</code>.
+            </li>
+            <li>Replace the <code>DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'</code> block with an
+                <code>EXCEPTION WHEN UNIQUE_VIOLATION THEN</code> block in PostgreSQL.
+            </li>
+            <li>Ensure that the error handling logic within the <code>EXCEPTION</code> block matches the original DB2
+                logic.</li>
+        </ol>
+        <h5>Example: DB2 Stored Procedure with <code>DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'</code></h5>
+        <pre><code>CREATE PROCEDURE SYSPROC.SP_SAMPLE (IN P_ID INT, IN P_NAME VARCHAR(50))
+BEGIN
+DECLARE CONTINUE HANDLER FOR SQLSTATE '23505'
+BEGIN
+-- Handle unique constraint violation
+END;
+
+INSERT INTO TGABM10.USERS (ID, NAME) VALUES (P_ID, P_NAME);
+END;</code></pre>
+        <h5>Equivalent PostgreSQL Function with <code>EXCEPTION WHEN UNIQUE_VIOLATION THEN</code></h5>
+        <pre><code>CREATE OR REPLACE FUNCTION tgabm10.sp_sample(p_id INT, p_name VARCHAR(50)) RETURNS VOID AS $$
+BEGIN
+BEGIN
+INSERT INTO tgabm10.users (id, name) VALUES (p_id, p_name);
+EXCEPTION
+WHEN UNIQUE_VIOLATION THEN
+-- Handle unique constraint violation
+WHEN OTHERS THEN
+-- Handle other exceptions
+END;
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+        <p>This transformation ensures that the error handling mechanism in PostgreSQL is equivalent to the original DB2
+            logic, maintaining the integrity of the stored procedure's functionality.</p>
+    </div>
+    <div class="container" id="section4">
+        <h2>4. Testing</h2>
+        <h3>Localized Validation</h3>
+        <ul>
+            <li>Deploy converted PostgreSQL functions in a controlled environment.</li>
+            <li>Execute unit test cases to ensure correct parameter handling and data integrity.</li>
+            <li>Document function execution times.</li>
+            <li>Verify schema consistency between migrated and original database objects.</li>
+        </ul>
+        <h3>4.1 Data Type Consistency Check</h3>
+        <p>To ensure that all columns have consistent data types throughout the database, you can use the following SQL
+            queries:</p>
+        <h4>SQL to Check Data Type Consistency</h4>
+        <pre><code>&lt;&lt;To be updated&gt;&gt;</code></pre>
+        <p>This query checks for columns that have inconsistent data types across different tables in the
+            <code>public</code> schema.
+        </p>
+        <h4>SQL to List Columns with Discrepancies</h4>
+        <pre><code>&lt;&lt;To be updated&gt;&gt;</code></pre>
+        <p>This query lists all columns with data type discrepancies, providing details about the table name, column
+            name, and data type.</p>
+        <p>These queries help identify and address data type inconsistencies, ensuring schema integrity across the
+            database.</p>
+        <h3>4.2 Usage of Personally Developed Review Tools</h3>
+        <p>This module contains tools developed in Python for Streamlit web applications. To use these tools, follow the
+            steps below:</p>
+        <ol></ol>
+        <li>Install Python and the required packages listed in <code>requirements.txt</code>.</li>
+        <li>Use Visual Studio Code (VS Code) as the development environment.</li>
+        <li>Run the Streamlit applications using the command <code>streamlit run &lt;your_app.py&gt;</code>.</li>
+        </ol>
+        <p>Make sure to have all dependencies installed and properly configured in your environment.</p>
+        <h4>1. SQLcheck</h4>
+        <p>SQLcheck is a tool designed to facilitate the comparison of PostgreSQL functions with their corresponding DB2
+            stored procedures. It performs the following tasks:</p>
+        <ul>
+            <li><strong>Query Matching:</strong> Compares each PostgreSQL function with its DB2 stored procedure and
+                lists all matching queries.</li>
+            <li><strong>Field Comparison:</strong> Lists all the fields mentioned in both the PostgreSQL function and
+                the DB2 stored procedure, along with the actual list of columns in the related tables.</li>
+            <li><strong>Highlighting Discrepancies:</strong> Highlights missed columns, mismatched columns, and
+                differences in values used or assigned.</li>
+        </ul>
+        <img src="../attachments/image.png" alt="SQLcheck" style="width: 75%;">
+        <p>This tool helps ensure that the PostgreSQL functions accurately reflect the logic and structure of the
+            original DB2 stored procedures, enabling developers to identify and rectify any discrepancies.</p>
+        <h4>2. e1func</h4>
+        <p>e1func is a tool that assists in managing and deploying PostgreSQL functions. It provides the following
+            features:</p>
+        <ul>
+            <li><strong>Directory Listing:</strong> Lists all the subdirectories in the specified folder.</li>
+            <li><strong>File Selection:</strong> Lists all the files in the selected subdirectories with options to
+                select all, deselect all, or flip selection for each subdirectory.</li>
+            <li><strong>Grant Statements:</strong> Checks, lists, and adds "GRANT EXECUTE ON FUNCTION" statements for
+                each selected function.</li>
+            <li><strong>SQL File Creation:</strong> Combines all the selected functions and creates a single stitched
+                SQL file to install the functions on any PostgreSQL server.</li>
+        </ul>
+        <img src="../attachments/image.png" alt="e1func" style="width: 75%;">
+        <p>This tool streamlines the process of managing and deploying PostgreSQL functions by automating the generation
+            of grant statements and consolidated SQL files for installation.</p>
+        <h4>3. cpytool</h4>
+        <p>cpytool is a synchronization tool for managing Git repositories and ensuring consistency across different
+            directory structures. It offers the following functionalities:</p>
+        <ul>
+            <li><strong>Backup Creation:</strong> Based on the <code>dirlst.csv</code> file, which lists the source and
+                destination directories, it provides a button to backup the destination folders/files by creating zip
+                archives.</li>
+            <li><strong>Directory Clearing:</strong> Provides a button to clear the destination directories for files to
+                be replaced.</li>
+            <li><strong>File Copying:</strong> Provides a button to copy files from each source folder to the
+                corresponding destination folder as listed in the <code>dirlst.csv</code> file.</li>
+        </ul>
+        <img src="../attachments/image.png" alt="cpytool" style="width: 75%;">
+        <p>This tool simplifies the process of synchronizing files and directories across different environments,
+            ensuring consistency and integrity in the migration process.</p>
+        <h4>4. Excel-based Function Execution SQL Generator</h4>
+        <p>This tool is designed to generate function execution SQL for DBeaver. It takes InMaps and Call templates with
+            datatype casts as inputs and generates the function call SQL with proper typecasts for testing in DBeaver.
+        </p>
+        <h5>Steps to Use the Tool:</h5>
+        <ol>
+            <li><strong>Prepare InMaps and Call Templates:</strong>
+                <ul>
+                    <li>Obtain the datatype casts from DBeaver:</li>
+                    <li>Right-click on the function in DBeaver.</li>
+                    <li>Select <code>Generate SQL</code> -> <code>Call</code>.</li>
+                    <li>Choose <code>Use explicit typecast</code>.</li>
+                    <li>Copy the generated SQL.</li>
+                </ul>
+            </li>
+            <li><strong>Input Data in Excel:</strong>
+                <ul>
+                    <li>Paste the inmap from java team at A1. (contents inside {})</li>
+                    <li>Paste the call template from DBeaver at H1.</li>
+                </ul>
+            </li>
+            <img src="../attachments/image.png" alt="Input Data" style="width: 75%;">
+            <li><strong>Generate Function Call SQL:</strong>
+                <ul>
+                    <li>Copy Function execution statement from R1.</li>
+                </ul>
+            </li>
+            <img src="../attachments/image.png" alt="Copy Data" style="width: 75%;">
+            <li><strong>Execute in DBeaver:</strong>
+                <ul>
+                    <li>Paste it into DBeaver's SQL editor.</li>
+                    <li>Execute the SQL to test the function.</li>
+                </ul>
+            </li>
+        </ol>
+        <h5>Example:</h5>
+        <table>
+            <tr>
+                <th>Function Name</th>
+                <th>Parameter Name</th>
+                <th>Data Type</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>sp_sample</td>
+                <td>p_id</td>
+                <td>INT</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>sp_sample</td>
+                <td>p_name</td>
+                <td>VARCHAR</td>
+                <td>'John'</td>
+            </tr>
+        </table>
+        <p>Generated SQL:</p>
+        <pre><code>SELECT * FROM sp_sample(1::INT, 'John'::VARCHAR);</code></pre>
+        <p>This tool simplifies the process of generating and testing function calls in DBeaver by automating the
+            creation of SQL statements with proper typecasts.</p>
+        <p>These tools streamline the migration process, ensuring accuracy, efficiency, and consistency in the
+            conversion and deployment of database functions. These tools help eliminate manual errors, making the
+            process more reliable.</p>
+        <p><strong>Note:</strong> These tools are personally developed and are continuously updated for each new
+            scenario encountered. As such, they may be far from perfection.</p>
+    </div>
+
+    <div class="container" id="section5">
+        <h2>5. Troubleshooting and Optimization</h2>
+        <h3>Common Issues and Remediation Strategies</h3>
+        <ol>
+            <li><strong>Syntax Discrepancies:</strong> Address <code>DB2</code>-specific syntax differences by rewriting
+                constructs in <code>PL/pgSQL</code>.</li>
+            <li><strong>Cursor Lifecycle Management:</strong> Ensure cursors are properly opened, iterated, and
+                deallocated.</li>
+            <li><strong>Error Code Mapping:</strong> Align <code>DB2</code> error codes with <code>PostgreSQL</code>
+                equivalents.</li>
+            <li><strong>UUID Conversion Anomalies:</strong> Validate <code>UUID</code> transformations to prevent
+                implicit casting errors.</li>
+        </ol>
+    </div>
+    <div class="container" id="section6">
+        <h2>6. Function Created</h2>
+        <p>For a comprehensive list of all the created PostgreSQL functions along with their short descriptions, please
+            refer to the <a href="./Function_Descriptions.md">Function Descriptions Page</a>. This page provides an
+            overview of each function, including its purpose, parameters, and any relevant notes to aid in understanding
+            and utilizing the functions effectively.</p>
+        <hr>
+    </div>
+
+    <div class="container" id="section7">
+        <h2>7. Conclusion</h2>
+        <p>This document provides a structured and detailed steps followed for migrating <code>DB2</code> stored
+            procedures to <code>PostgreSQL</code> functions. It ensures seamless conversion while maintaining the
+            functional integrity of database operations. By leveraging best practices in procedural transformation,
+            error handling, and performance optimization, this approach minimizes risk and facilitates a smooth
+            transition.</p>
+    </div>
+
+    <script>
+        function toggleNavMenu() {
+            document.getElementById('navMenu').classList.toggle('open');
+        }
+
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+            toggleNavMenu();
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.contentWindow.postMessage({ theme: document.body.classList.contains('light-theme') ? 'light' : 'dark' }, '*');
+            });
+        }
+
+    </script>
+
+</body>
+
+</html>
